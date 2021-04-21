@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session, Query
 from sqlalchemy_serializer import SerializerMixin
 
 from src.database.db_session import SqlAlchemyBase
+from src.database.models.ModelBase import ModelBase
 
 
-class Author(SqlAlchemyBase, SerializerMixin):
+class Author(ModelBase, SerializerMixin):
     __tablename__ = 'authors'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
@@ -31,24 +32,3 @@ class Author(SqlAlchemyBase, SerializerMixin):
         author.death_date = death_date
 
         return author
-
-    @staticmethod
-    def _get_by(session: Session, params: dict[str, Union[str, date]], comparator, limit: int = 10) -> list[Author]:
-        q: Query = session.query(Author).limit(limit)
-        for attr, value in params.items():
-            q = q.filter(comparator(getattr(Author, attr), value))
-        return q.all()
-
-    @staticmethod
-    def get_like(session: Session, params: dict[str, Union[str, date]], limit: int = 10) -> list[Author]:
-        return Author._get_by(
-            session, params,
-            lambda column, value: column.like("%%%s%%" % value), limit=limit,
-        )
-
-    @staticmethod
-    def get_equal(session: Session, params: dict[str, Union[str, date]], limit: int = 10) -> list[Author]:
-        return Author._get_by(
-            session, params,
-            lambda column, value: column._is(value), limit=limit,
-        )
