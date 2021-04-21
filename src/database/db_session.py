@@ -1,25 +1,33 @@
-import arango
-from arango import ArangoClient
-from arango.database import StandardDatabase
+import sqlalchemy as sa
+import sqlalchemy.orm as orm
+from sqlalchemy.orm import Session
+import sqlalchemy.ext.declarative as dec
 
-__user = None
+SqlAlchemyBase = dec.declarative_base()
+
+__factory = None
 
 
-def global_init(db_file, database_name, username, password):
-    global __user
+def global_init(db_file):
+    global __factory
 
-    if __user:
+    if __factory:
         return
 
     if not db_file or not db_file.strip():
-        raise Exception("Необходимо указать адрес базы данных.")
+        raise Exception("Необходимо указать файл базы данных.")
 
-    client: arango.client.ArangoClient = ArangoClient(hosts=db_file)
-    print(f"Подключение к базе данных по адресу {db_file}")
+    conn_str = f'sqlite:///{db_file.strip()}?check_same_thread=False'
+    print(f"Подключение к базе данных по адресу {conn_str}")
 
-    __user = client.db(database_name, username=username, password=password)
+    engine = sa.create_engine(conn_str, echo=False)
+    __factory = orm.sessionmaker(bind=engine)
+
+    from . import __all_models
+
+    SqlAlchemyBase.metadata.create_all(engine)
 
 
-def create_session() -> StandardDatabase:
-    global __user
-    return __user
+def create_session() -> Session:
+    global __factory
+    return __factory()
